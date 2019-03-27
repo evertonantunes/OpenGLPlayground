@@ -1,0 +1,9 @@
+[requires]
+#freeglut/3.0.0@bincrafters/stable
+glew/2.1.0@bincrafters/stable
+glm/0.9.8.5@g-truc/stable
+
+[options]
+
+[generators]
+cmake

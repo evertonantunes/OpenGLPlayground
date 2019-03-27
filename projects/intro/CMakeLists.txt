@@ -1,0 +1,26 @@
+cmake_minimum_required(VERSION 3.10)
+
+SET(THIS_PROJECT_NAME "intro")
+
+find_package(OpenGL REQUIRED)
+find_package(GLUT REQUIRED)
+include_directories(${OPENGL_INCLUDE_DIRS}  ${GLUT_INCLUDE_DIRS})
+
+SET(INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/include)
+SET(SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/source)
+
+INCLUDE_DIRECTORIES(${INCLUDE_DIR})
+
+#add project files
+FILE(GLOB_RECURSE SOURCES RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} ${SOURCE_DIR}/*.cpp)
+FILE(GLOB_RECURSE HEADERS RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} ${INCLUDE_DIR}/*.hpp)
+
+ADD_DEFINITIONS(-fsanitize=address)
+ADD_DEFINITIONS(-fno-omit-frame-pointer)
+ADD_DEFINITIONS(-O0)
+ADD_DEFINITIONS(-Wall -Wextra -Werror)
+
+add_executable(${THIS_PROJECT_NAME} ${SOURCES} ${HEADERS})
+target_link_libraries(${THIS_PROJECT_NAME} -lasan ${OPENGL_LIBRARIES} ${GLUT_LIBRARY})
+conan_target_link_libraries(${THIS_PROJECT_NAME})
+
