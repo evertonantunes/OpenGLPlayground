@@ -6,8 +6,6 @@ conan_basic_setup()
 
 SET(CMAKE_CXX_STANDARD 17)
 
-SET(INCLUDE_DIR ${CMAKE_SOURCE_DIR}/include)
-INCLUDE_DIRECTORIES(${INCLUDE_DIR})
-
+add_subdirectory(utility)
 add_subdirectory(projects)
 

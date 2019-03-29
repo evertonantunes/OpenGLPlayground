@@ -2,6 +2,8 @@
 #include <GL/freeglut.h>
 #include <iostream>
 
+#include <shader.hpp>
+
 const int WIDTH = 1280;
 const int HEIGHT = 960;
 
