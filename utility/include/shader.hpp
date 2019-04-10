@@ -13,8 +13,8 @@ namespace application
         public:
             Shader(void);
             ~Shader(void);
-            void LoadFromString(GLenum whichShader, const std::string& source);
-            void LoadFromFile(GLenum whichShader, const std::string& filename);
+            bool LoadFromString(GLenum whichShader, const std::string_view source);
+            bool LoadFromFile(GLenum whichShader, const std::string& filename);
             void CreateAndLinkProgram();
             void Use();
             void UnUse();

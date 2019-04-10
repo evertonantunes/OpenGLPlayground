@@ -6,6 +6,7 @@ conan_basic_setup()
 
 SET(CMAKE_CXX_STANDARD 17)
 
+add_subdirectory(rcc)
 add_subdirectory(utility)
 add_subdirectory(projects)
 
