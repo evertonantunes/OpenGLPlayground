@@ -10,36 +10,9 @@
 
 #define GL_CHECK_ERRORS assert(glGetError()== GL_NO_ERROR);
 
-
-//const int WIDTH = 1280;
-//const int HEIGHT = 960;
-//const int NUM_Z = 1000;
-//const int NUM_X = 1000;
-//const int HALF_SIZE_X = 20;
-//const int HALF_SIZE_Z = 20;
-//const int SPEED = 10000;
-//const int TOTAL_INDICES = (NUM_Z*NUM_X)*6;
-
-//int render_time = 0;
-
-//float dist = 10.0f;
-
-//float rX = 0.0f;
-//float rY = 0.0f;
-//int state = 0;
-
-//GLuint vaoID = 0;
-//GLuint vboVerticesID = 0;
-//GLuint vboIndicesID = 0;
-//std::vector<GLushort> indices;
-//std::vector<glm::vec3> vertices;
-//glm::tmat4x4<float, glm::defaultp> P;
-
-
 //screen size
 const int WIDTH  = 1280;
 const int HEIGHT = 960;
-
 
 //vertex array and vertex buffer object IDs
 GLuint vaoID;
@@ -62,6 +35,8 @@ glm::vec3 vertices[(NUM_X+1)*(NUM_Z+1)];
 const int TOTAL_INDICES = NUM_X*NUM_Z*2*3;
 GLushort indices[TOTAL_INDICES];
 
+static std::vector<glm::vec3> s_vertices;
+
 //projection and modelview matrices
 glm::mat4  P = glm::mat4(1);
 glm::mat4 MV = glm::mat4(1);
@@ -73,10 +48,23 @@ float rX=25, rY=-40, dist = -7;
 //current time
 float render_time = 0;
 
-
-
-
 application::opengl::Shader shader;
+
+std::vector<glm::vec3> get_vertices()
+{
+    std::vector<glm::vec3> result;
+    for ( std::size_t j = 0; j <= NUM_Z; j++ )
+    {
+        for ( std::size_t i = 0; i <= NUM_X; i++ )
+        {
+            const auto a = ((static_cast<float>(i) / (NUM_X - 1)) * 2 - 1) * HALF_SIZE_X;
+            const auto b = 0.0f;
+            const auto c = ((static_cast<float>(j) / (NUM_Z - 1)) * 2 - 1) * HALF_SIZE_Z;
+            result.push_back(glm::vec3{a, b, c});
+        }
+    }
+    return result;
+}
 
 void OnInit()
 {
@@ -93,33 +81,43 @@ void OnInit()
 
     //setup plane geometry
     //setup plane vertices
-    int count = 0;
+//    int count = 0;
     int i=0, j=0;
-    for( j=0;j<=NUM_Z;j++) {
-        for( i=0;i<=NUM_X;i++) {
-            vertices[count++] = glm::vec3( ((float(i)/(NUM_X-1)) *2-1)* HALF_SIZE_X, 0, ((float(j)/(NUM_Z-1))*2-1)*HALF_SIZE_Z);
-        }
-    }
+//    for( j=0;j<=NUM_Z;j++)
+//    {
+//        for( i=0;i<=NUM_X;i++)
+//        {
+//            vertices[count++] = glm::vec3(((float(i)/(NUM_X-1)) *2-1)* HALF_SIZE_X, 0, ((float(j)/(NUM_Z-1))*2-1)*HALF_SIZE_Z);
+//        }
+//    }
+
+    s_vertices = get_vertices();
 
     //fill plane indices array
     GLushort* id=&indices[0];
-    for (i = 0; i < NUM_Z; i++) {
-        for (j = 0; j < NUM_X; j++) {
+    for (i = 0; i < NUM_Z; i++)
+    {
+        for (j = 0; j < NUM_X; j++)
+        {
             int i0 = i * (NUM_X+1) + j;
             int i1 = i0 + 1;
             int i2 = i0 + (NUM_X+1);
             int i3 = i2 + 1;
-            if ((j+i)%2) {
+
+            if ((j+i) % 2)
+            {
                 *id++ = i0; *id++ = i2; *id++ = i1;
                 *id++ = i1; *id++ = i2; *id++ = i3;
-            } else {
+            }
+            else
+            {
                 *id++ = i0; *id++ = i2; *id++ = i3;
                 *id++ = i0; *id++ = i3; *id++ = i1;
             }
         }
     }
 
-    GL_CHECK_ERRORS
+    GL_CHECK_ERRORS;
 
     //setup plane vao and vbo stuff
     glGenVertexArrays(1, &vaoID);
@@ -128,20 +126,25 @@ void OnInit()
 
     glBindVertexArray(vaoID);
 
-        glBindBuffer (GL_ARRAY_BUFFER, vboVerticesID);
-        //pass plane vertices to array buffer object
-        glBufferData (GL_ARRAY_BUFFER, sizeof(vertices), &vertices[0], GL_STATIC_DRAW);
-        GL_CHECK_ERRORS
-        //enable vertex attrib array for position
-        glEnableVertexAttribArray(shader["vVertex"]);
-        glVertexAttribPointer(shader["vVertex"], 3, GL_FLOAT, GL_FALSE,0,0);
-        GL_CHECK_ERRORS
-        //pass the plane indices to element array buffer
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, vboIndicesID);
-        glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), &indices[0], GL_STATIC_DRAW);
-        GL_CHECK_ERRORS
+    glBindBuffer(GL_ARRAY_BUFFER, vboVerticesID);
 
+    //pass plane vertices to array buffer object
 
+    /*
+     *  Como a função glBufferData sabe que o array é do tipo float ?
+    */
+    glBufferData(GL_ARRAY_BUFFER, s_vertices.size()*(sizeof(float)*3), &s_vertices[0], GL_STATIC_DRAW);
+    GL_CHECK_ERRORS;
+
+    // enable vertex attrib array for position
+    glEnableVertexAttribArray(shader["vVertex"]);
+    glVertexAttribPointer(shader["vVertex"], 3, GL_FLOAT, GL_FALSE,0,0);
+    GL_CHECK_ERRORS;
+
+    // pass the plane indices to element array buffer
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, vboIndicesID);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), &indices[0], GL_STATIC_DRAW);
+    GL_CHECK_ERRORS;
 }
 
 void OnShutdown()
@@ -152,20 +155,22 @@ void OnShutdown()
     glDeleteVertexArrays(1, &vaoID);
 }
 
-void OnResize(int , int )
+void OnMouseDown(int button, int s, int x, int y)
 {
-
-}
-
-void OnMouseDown(int button, int s, int x, int y) {
-    if (s == GLUT_DOWN) {
+    if (s == GLUT_DOWN)
+    {
         oldX = x;
         oldY = y;
     }
+
     if(button == GLUT_MIDDLE_BUTTON)
+    {
         state = 0;
+    }
     else
+    {
         state = 1;
+    }
 }
 
 void OnMouseMove(int x, int y) {
@@ -196,11 +201,13 @@ void OnRender()
 }
 
 //idle event callback
-void OnIdle() {
+void OnIdle()
+{
     glutPostRedisplay();
 }
 
-void OnResize(int w, int h) {
+void OnResize(int w, int h)
+{
     //set the viewport size
     glViewport (0, 0, (GLsizei) w, (GLsizei) h);
     //setup the projection matrix
@@ -240,7 +247,6 @@ int main( int argc, char **argv )
     OnInit();
     glutCloseFunc(OnShutdown);
     glutDisplayFunc(OnRender);
-    glutReshapeFunc(OnResize);
     glutMotionFunc(OnMouseMove);
     glutMouseFunc(OnMouseDown);
     glutReshapeFunc(OnResize);
