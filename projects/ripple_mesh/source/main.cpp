@@ -19,23 +19,34 @@ GLuint vaoID;
 GLuint vboVerticesID;
 GLuint vboIndicesID;
 
-const int NUM_X = 40; //total quads on X axis
-const int NUM_Z = 40; //total quads on Z axis
+const int NUM_X = 512; //total quads on X axis
+const int NUM_Y = 128; //total quads on X axis
+const int NUM_Z = 128; //total quads on Z axis
 
 const float SIZE_X = 4; //size of plane in world space
+const float SIZE_Y = 4;
 const float SIZE_Z = 4;
-const float HALF_SIZE_X = SIZE_X/2.0f;
-const float HALF_SIZE_Z = SIZE_Z/2.0f;
+const float HALF_SIZE_X = SIZE_X*2.0f;
+const float HALF_SIZE_Y = SIZE_Y*2.0f;
+const float HALF_SIZE_Z = SIZE_Z*2.0f;
 
 //ripple displacement speed
 const float SPEED = 2;
 
-//ripple mesh vertices and indices
-glm::vec3 vertices[(NUM_X+1)*(NUM_Z+1)];
-const int TOTAL_INDICES = NUM_X*NUM_Z*2*3;
-GLushort indices[TOTAL_INDICES];
-
 static std::vector<glm::vec3> s_vertices;
+
+union Triangle
+{
+    struct
+    {
+        GLushort i1;
+        GLushort i2;
+        GLushort i3;
+    } shape;
+    GLushort data[3];
+};
+
+static std::vector<Triangle> s_indices;
 
 //projection and modelview matrices
 glm::mat4  P = glm::mat4(1);
@@ -53,22 +64,76 @@ application::opengl::Shader shader;
 std::vector<glm::vec3> get_vertices()
 {
     std::vector<glm::vec3> result;
-    for ( std::size_t j = 0; j <= NUM_Z; j++ )
+
+
+    for ( GLushort z = 0; z <= NUM_Z; z++ )
     {
-        for ( std::size_t i = 0; i <= NUM_X; i++ )
+        for ( GLushort x = 0; x <= NUM_X; x++ )
         {
-            const auto a = ((static_cast<float>(i) / (NUM_X - 1)) * 2 - 1) * HALF_SIZE_X;
-            const auto b = 0.0f;
-            const auto c = ((static_cast<float>(j) / (NUM_Z - 1)) * 2 - 1) * HALF_SIZE_Z;
-            result.push_back(glm::vec3{a, b, c});
+            for ( GLushort y = 0; y <= NUM_Y; y++ )
+            {
+                const auto a = ((static_cast<float>(x) / (NUM_X - 1)) * 2 - 1) * HALF_SIZE_X;
+                const auto b = ((static_cast<float>(y) / (NUM_Y - 1)) * 2 - 1) * HALF_SIZE_Y;
+                const auto c = ((static_cast<float>(z) / (NUM_Z - 1)) * 2 - 1) * HALF_SIZE_Z;
+                result.push_back(glm::vec3{a, b, c});
+            }
         }
     }
+
+    return result;
+}
+
+std::vector<Triangle> get_indices()
+{
+    std::vector<Triangle> result;
+
+    GLushort index = 0;
+
+    for ( std::size_t y = 0; y < NUM_Y; y++ )
+    {
+        for ( std::size_t i = 0; i < NUM_Z; i++)
+        {
+            for (std::size_t j = 0; j < NUM_X; j++)
+            {
+                result.push_back({index++, index++, index++});
+            }
+        }
+    }
+
+
+//    for ( std::size_t y = 0; y < 1; y++ )
+//    {
+//        for ( std::size_t i = 0; i < NUM_Z; i++)
+//        {
+//            for (std::size_t j = 0; j < NUM_X; j++)
+//            {
+
+//                GLushort i0 = i * (NUM_X+1) + j;
+//                GLushort i1 = i0 + 1;
+//                GLushort i2 = i0 + (NUM_X+1);
+//                GLushort i3 = i2 + 1;
+
+
+//                if ((j+i) % 2)
+//                {
+//                    result.push_back({i0, i1, i2});
+//                    result.push_back({i1, i2, i3});
+//                }
+//                else
+//                {
+//                    result.push_back({i0, i2, i3});
+//                    result.push_back({i0, i3, i1});
+//                }
+//            }
+//        }
+//    }
+
     return result;
 }
 
 void OnInit()
 {
-    glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+    glPolygonMode(GL_FRONT_AND_BACK, GL_POINT);
 
     shader.LoadFromString(GL_VERTEX_SHADER, application::resource::get("resource/shader.vert"));
     shader.LoadFromString(GL_FRAGMENT_SHADER, application::resource::get("resource/shader.frag"));
@@ -79,43 +144,8 @@ void OnInit()
     shader.AddUniform("time");
     shader.UnUse();
 
-    //setup plane geometry
-    //setup plane vertices
-//    int count = 0;
-    int i=0, j=0;
-//    for( j=0;j<=NUM_Z;j++)
-//    {
-//        for( i=0;i<=NUM_X;i++)
-//        {
-//            vertices[count++] = glm::vec3(((float(i)/(NUM_X-1)) *2-1)* HALF_SIZE_X, 0, ((float(j)/(NUM_Z-1))*2-1)*HALF_SIZE_Z);
-//        }
-//    }
-
     s_vertices = get_vertices();
-
-    //fill plane indices array
-    GLushort* id=&indices[0];
-    for (i = 0; i < NUM_Z; i++)
-    {
-        for (j = 0; j < NUM_X; j++)
-        {
-            int i0 = i * (NUM_X+1) + j;
-            int i1 = i0 + 1;
-            int i2 = i0 + (NUM_X+1);
-            int i3 = i2 + 1;
-
-            if ((j+i) % 2)
-            {
-                *id++ = i0; *id++ = i2; *id++ = i1;
-                *id++ = i1; *id++ = i2; *id++ = i3;
-            }
-            else
-            {
-                *id++ = i0; *id++ = i2; *id++ = i3;
-                *id++ = i0; *id++ = i3; *id++ = i1;
-            }
-        }
-    }
+    s_indices = get_indices();
 
     GL_CHECK_ERRORS;
 
@@ -143,7 +173,7 @@ void OnInit()
 
     // pass the plane indices to element array buffer
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, vboIndicesID);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), &indices[0], GL_STATIC_DRAW);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, s_indices.size() * (sizeof(Triangle)*2), &s_indices[0], GL_STATIC_DRAW);
     GL_CHECK_ERRORS;
 }
 
@@ -177,8 +207,8 @@ void OnMouseMove(int x, int y) {
     if (state == 0)
         dist *= (1 + (y - oldY)/60.0f);
     else {
-        rY += (x - oldX)/5.0f;
-        rX += (y - oldY)/5.0f;
+        rY += (x - oldX)/335.0f;
+        rX += (y - oldY)/335.0f;
     }
     oldX = x; oldY = y;
     glutPostRedisplay();
@@ -195,7 +225,7 @@ void OnRender()
     shader.Use();
     glUniformMatrix4fv(shader("MVP"), 1, GL_FALSE, glm::value_ptr(MVP));
     glUniform1f(shader("time"), render_time);
-    glDrawElements(GL_TRIANGLES,TOTAL_INDICES, GL_UNSIGNED_SHORT,0);
+    glDrawElements(GL_TRIANGLES,s_indices.size() * (sizeof(Triangle)*2), GL_UNSIGNED_SHORT,0);
     shader.UnUse();
     glutSwapBuffers();
 }

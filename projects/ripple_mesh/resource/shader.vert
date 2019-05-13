@@ -11,8 +11,9 @@ const float PI = 3.14159;
 void main()
 {
     float distance = length(vVertex);
-    float y = amplitude * sin(-PI * distance * frequency + time);
-    gl_Position = MVP * vec4(vVertex.x, y, vVertex.z, 1);
+    //float y = amplitude * sin(-PI * distance * frequency + time);
+    //float x = amplitude * sin(-PI * distance * frequency + time);
+    gl_Position = MVP * vec4(vVertex.x, vVertex.y, vVertex.z, 1);
 }
 
 
